@@ -57,24 +57,24 @@ def match_event(global_vars, event):
     :return: key_exists Returns True, If key exists, False If Not.
     :rtype: bool
     """
-    resp = {'status': False}
+    resp = {'status': False, 'pay_load':[], 'error_message': ''}
     # Check if we are supposed to monitor this event
     if event.get('detail').get('eventName') in global_vars.get('sentry_borders').get('event_names'):
-        resp["pay_load"] = {}
-        resp["pay_load"]["account"]         = event.get('account')
-        resp["pay_load"]["actor"]           = event.get('detail').get('userIdentity').get('userName')
-        resp["pay_load"]["actor_arn"]       = event.get('detail').get('userIdentity').get('arn')
-        resp["pay_load"]["actor_region"]    = event.get('detail').get('awsRegion')
-        resp["pay_load"]["event_source"]     = event.get('detail').get('eventSource')
-        resp["pay_load"]["event_name"]      = event.get('detail').get('eventName')
-        resp["pay_load"]["event_time"]      = event.get('detail').get('eventTime')
-        resp["pay_load"]["event_epoch_time"]= dateutil.parser.parse( resp["pay_load"]["event_time" ] ).timestamp()
-        resp["pay_load"]["resources"]       = event.get('detail').get('resources')
-        resp["pay_load"]["color"]           = "#F35A00"
-        color = '#7CD197'
-        color = '#e2d43b'
-        color = '#ad0614'
+        tmp = {}
+        tmp["account"]         = event.get('account')
+        tmp["actor"]           = event.get('detail').get('userIdentity').get('userName')
+        tmp["actor_arn"]       = event.get('detail').get('userIdentity').get('arn')
+        tmp["actor_region"]    = event.get('detail').get('awsRegion')
+        tmp["event_source"]    = event.get('detail').get('eventSource')
+        tmp["event_name"]      = event.get('detail').get('eventName')
+        tmp["event_time"]      = event.get('detail').get('eventTime')
+        tmp["event_epoch_time"]= dateutil.parser.parse( event.get('detail').get('eventTime') ).timestamp()
+        tmp["resources"]       = event.get('detail').get('resources')
+        tmp["color"]           = "#F35A00"
+        resp['pay_load'].append( tmp )
         resp["status"] = True
+    else:
+        resp['error_message'] = "Event triggered, But couldn't parse event details correctly or unmatched event"
     return resp
 
 def post_to_slack(webhook_url, slack_data):
@@ -91,35 +91,39 @@ def post_to_slack(webhook_url, slack_data):
     """
     resp = {'status': False}
     slack_msg = {}
-    slack_msg["text"] = f"KMS Operation:{slack_data.get('event_name')} detected in Account:{slack_data.get('account')} in {slack_data.get('actor_region')} region"
-    # slack_msg["attachments"] = json.dumps(slack_data, indent=4, sort_keys=True)
-    slack_msg["attachments"] = {}
-    slack_msg["attachments"]["fallback"]        = slack_msg.get("text")
-    slack_msg["attachments"]["color"]           = slack_data.get("color")
-    # slack_msg["attachments"]["pretext"]       = f"User:`{slack_data.get('actor')}` performed `{slack_data.get('event_name')}` action."
-    slack_msg["attachments"]["author_name"]     = "Serverless-KMS-Sentry"
-    slack_msg["attachments"]["author_link"]     = "https://github.com/miztiik"
-    slack_msg["attachments"]["author_icon"]     = "https://camo.githubusercontent.com/c141d8a335bed19ba528f8f949fe7a0281da0285/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f7468702d6177732d69636f6e732d6465762f53656375726974794964656e74697479436f6d706c69616e63655f4157534b4d535f4c415247452e706e67"
-    slack_msg["attachments"]["title"]           = f"`{slack_data.get('event_name')}` by user:`{slack_data.get('actor')}`"
-    slack_msg["attachments"]["title_link"]      = f"https://console.aws.amazon.com/kms/home?region={slack_data.get('actor_region')}#/kms/keys"
-    slack_msg["attachments"]["fields"]          = [
-                {
-                    "title": "User",
-                    "value": slack_data.get('actor'),
-                    "short": true
-                },
-				                {
-                    "title": "Action",
-                    "value": slack_data.get('event_name'),
-                    "short": true
-                }
-            ]
-    slack_msg["attachments"]["footer"]          = "AWS KMS 🛫",
-    slack_msg["attachments"]["footer_icon"]     = "https://raw.githubusercontent.com/miztiik/serverless-kms-sentry/master/images/kms_icon.png",
-    slack_msg["attachments"]["ts"]              = int(resp["pay_load"]["event_epoch_time"])
-    slack_msg["mrkdwn"] = True
+    slack_msg["text"] = ''
+    slack_msg["attachments"] = []
+    logger.info(slack_data)
+    for i in slack_data.get("pay_load"):
+        tmp = {}
+        tmp["fallback"]         = "Monitored Action detected."
+        tmp["color"]            = i.get("color")
+        tmp["pretext"]          = f"Cloudtrail detected KMS event detected in Account:`{i.get('account')}` in `{i.get('actor_region')}` region."
+        tmp["author_name"]      = "Serverless KMS Sentry"
+        tmp["author_link"]      = "https://github.com/miztiik/serverless-kms-sentry"
+        tmp["author_icon"]      = "https://avatars1.githubusercontent.com/u/12252564?s=400&u=20375d438d970cb22cc4deda79c1f35c3099f760&v=4"
+        tmp["title"]            = f"KMS Action: {i.get('event_name')} detected"
+        tmp["title_link"]       = f"https://console.aws.amazon.com/kms/home?region={i.get('actor_region')}#/kms/keys"
+        tmp["fields"]           = [
+                    {
+                        "title": "User",
+                        "value": f"`{i.get('actor')}`",
+                        "short": True
+                    },
+	    			                {
+                        "title": "Action",
+                        "value": f"`{i.get('event_name')}`",
+                        "short": True
+                    }
+                ]
+        tmp["footer"]           = "AWS KMS"
+        tmp["footer_icon"]      = "https://raw.githubusercontent.com/miztiik/serverless-kms-sentry/master/images/kms_icon.png"
+        tmp["ts"]               = int(i["event_epoch_time"])
+        tmp["mrkdwn_in"]        = ["pretext", "text", "fields"]
+        slack_msg["attachments"].append(tmp)
+    logger.info( json.dumps(slack_msg, indent=4, sort_keys=True) )
 
-    # slack_payload = {'text':json.dumps(slack_data)}
+    # slack_payload = {'text':json.dumps(i)}
     try:
         p_resp = requests.post( webhook_url, data=json.dumps(slack_msg), headers={'Content-Type': 'application/json'} )
         resp["status"] = True
@@ -127,7 +131,7 @@ def post_to_slack(webhook_url, slack_data):
         logger.error( f"ERROR:{str(e)}" )
         resp["error_message"] = f"ERROR:{str(e)}"
     if p_resp.status_code < 400:
-        logger.info(f"INFO: Message posted successfully. {p_resp.text}")
+        logger.info(f"INFO: Message posted successfully. Resonse:{p_resp.text}")
         resp["error_message"] = f"{p_resp.text}"
     elif p_resp.status_code < 500:
         logger.error(f"Unable to post to slack. ERROR: {p_resp.text}")
@@ -165,11 +169,12 @@ def lambda_handler(event, context):
     if e_resp.get("status"):
         # Lets post to slack if there is a event
         if global_vars.get("webhook_url"):
-            post_to_slack(global_vars.get("webhook_url"), e_resp.get("pay_load"))
+            post_to_slack(global_vars.get("webhook_url"), e_resp )
         # Add to return resp the payload
             resp["pay_load"] = e_resp.get("pay_load")
         resp["status"] = True
-    logger.info(f"Response: {resp}")
+    else:
+        resp['error_message'] = e_resp['error_message']
     return resp
 
 if __name__ == '__main__':
