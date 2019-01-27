@@ -36,7 +36,6 @@ def set_global_vars():
     try:
         global_vars['Owner']                    = "Mystique"
         global_vars['Environment']              = "Prod"
-        global_vars['aws_region']               = "us-east-1"
         global_vars['tag_name']                 = "serverless_kms_sentry"
         # global_vars['sentry_boundary']          = { "event_names": [ "CreateAlias", "CreateGrant", "CreateKey", "Decrypt", "DeleteAlias", "DescribeKey", "DisableKey", "EnableKey", "Encrypt", "GenerateDataKey", "GenerateDataKeyWithoutPlaintext", "GenerateRandom", "GetKeyPolicy", "ListAliases", "ListGrants", "ReEncrypt" ]}
         global_vars['sentry_borders']           = { "event_names": [ "CreateAlias", "DeleteAlias", "DisableKey"]}
@@ -61,16 +60,17 @@ def match_event(global_vars, event):
     # Check if we are supposed to monitor this event
     if event.get('detail').get('eventName') in global_vars.get('sentry_borders').get('event_names'):
         tmp = {}
-        tmp["account"]         = event.get('account')
-        tmp["actor"]           = event.get('detail').get('userIdentity').get('userName')
-        tmp["actor_arn"]       = event.get('detail').get('userIdentity').get('arn')
-        tmp["actor_region"]    = event.get('detail').get('awsRegion')
-        tmp["event_source"]    = event.get('detail').get('eventSource')
-        tmp["event_name"]      = event.get('detail').get('eventName')
-        tmp["event_time"]      = event.get('detail').get('eventTime')
-        tmp["event_epoch_time"]= dateutil.parser.parse( event.get('detail').get('eventTime') ).timestamp()
-        tmp["resources"]       = event.get('detail').get('resources')
-        tmp["color"]           = "#F35A00"
+        tmp["account"]          = event.get('account')
+        tmp["actor"]            = event.get('detail').get('userIdentity').get('userName')
+        tmp["actor_arn"]        = event.get('detail').get('userIdentity').get('arn')
+        tmp["actor_type"]       = event.get('detail').get('userIdentity').get('type')
+        tmp["actor_region"]     = event.get('detail').get('awsRegion')
+        tmp["event_source"]     = event.get('detail').get('eventSource')
+        tmp["event_name"]       = event.get('detail').get('eventName')
+        tmp["event_time"]       = event.get('detail').get('eventTime')
+        tmp["event_epoch_time"] = dateutil.parser.parse( event.get('detail').get('eventTime') ).timestamp()
+        tmp["resources"]        = event.get('detail').get('resources')
+        tmp["color"]            = "#F35A00"
         resp['pay_load'].append( tmp )
         resp["status"] = True
     else:
@@ -98,22 +98,27 @@ def post_to_slack(webhook_url, slack_data):
         tmp = {}
         tmp["fallback"]         = "Monitored Action detected."
         tmp["color"]            = i.get("color")
-        tmp["pretext"]          = f"Cloudtrail detected KMS event detected in Account:`{i.get('account')}` in `{i.get('actor_region')}` region."
+        tmp["pretext"]          = f"Cloudtrail detected KMS event in `{i.get('actor_region')}` region from Account:`{i.get('account')}`"
         tmp["author_name"]      = "Serverless KMS Sentry"
         tmp["author_link"]      = "https://github.com/miztiik/serverless-kms-sentry"
         tmp["author_icon"]      = "https://avatars1.githubusercontent.com/u/12252564?s=400&u=20375d438d970cb22cc4deda79c1f35c3099f760&v=4"
-        tmp["title"]            = f"KMS Action: {i.get('event_name')} detected"
+        tmp["title"]            = f"KMS Action: {i.get('event_name')}"
         tmp["title_link"]       = f"https://console.aws.amazon.com/kms/home?region={i.get('actor_region')}#/kms/keys"
         tmp["fields"]           = [
                     {
-                        "title": "User",
+                        "title": "UserName",
                         "value": f"`{i.get('actor')}`",
-                        "short": True
+                        "short": False
+                    },
+                    {
+                        "title": "UserType",
+                        "value": f"`{i.get('actor_type')}`",
+                        "short": False
                     },
 	    			                {
-                        "title": "Action",
-                        "value": f"`{i.get('event_name')}`",
-                        "short": True
+                        "title": "UserARN",
+                        "value": f"`{i.get('actor_arn')}`",
+                        "short": False
                     }
                 ]
         tmp["footer"]           = "AWS KMS"
