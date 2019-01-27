@@ -89,37 +89,6 @@ def post_to_slack(webhook_url, slack_data):
     :return: key_exists Returns True, If key exists, False If Not.
     :rtype: bool
     """
-{
-    "text": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-    "attachments": [
-        {
-            "fallback": "Required plain-text summary of the attachment.",
-            "color": "#ad0614",
-            "pretext": "Optional text that appears above the attachment block",
-            "author_name": "Bobby Tables",
-            "author_link": "http://flickr.com/bobby/",
-            "author_icon": "http://flickr.com/icons/bobby.jpg",
-            "title": "Slack API Documentation",
-            "title_link": "https://api.slack.com/",
-            "text": "Optional text that appears within the attachment",
-            "fields": [
-                {
-                    "title": "Priority",
-                    "value": "High",
-                    "short": false
-                }
-            ],
-            "image_url": "http://my-website.com/path/to/image.jpg",
-            "thumb_url": "http://example.com/path/to/thumb.png",
-            "footer": "Slack API",
-            "footer_icon": "https://platform.slack-edge.com/img/default_application_icon.png",
-            "ts": 123456789
-        }
-    ]
-}
-
-
-
     resp = {'status': False}
     slack_msg = {}
     slack_msg["text"] = f"KMS Operation:{slack_data.get('event_name')} detected in Account:{slack_data.get('account')} in {slack_data.get('actor_region')} region"
@@ -135,11 +104,19 @@ def post_to_slack(webhook_url, slack_data):
     slack_msg["attachments"]["title_link"]      = f"https://console.aws.amazon.com/kms/home?region={slack_data.get('actor_region')}#/kms/keys"
     slack_msg["attachments"]["fields"]          = [
                 {
-                    "title": "Priority",
-                    "value": "High",
-                    "short": false
+                    "title": "User",
+                    "value": slack_data.get('actor'),
+                    "short": true
+                },
+				                {
+                    "title": "Action",
+                    "value": slack_data.get('event_name'),
+                    "short": true
                 }
             ]
+    slack_msg["attachments"]["footer"]          = "AWS KMS 🛫",
+    slack_msg["attachments"]["footer_icon"]     = "https://raw.githubusercontent.com/miztiik/serverless-kms-sentry/master/images/kms_icon.png",
+    slack_msg["attachments"]["ts"]              = int(resp["pay_load"]["event_epoch_time"])
     slack_msg["mrkdwn"] = True
 
     # slack_payload = {'text':json.dumps(slack_data)}
