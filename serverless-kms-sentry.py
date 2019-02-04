@@ -1,7 +1,6 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 """
-.. module: To create encrypt/decrypt data with KMS CMKs
+.. module: Monitor certain KMS actions through Cloudtrail and alert in Slack
     :platform: AWS
     :copyright: (c) 2019 Mystique.,
     :license: Apache, see LICENSE for more details.
@@ -50,8 +49,10 @@ def match_event(global_vars, event):
     """
     Check if the event is part of the sentry borders to be patrolled
 
-    :param event: The lambda event
+    :param global_vars: The list of global variables
     :param type: json
+    :param event: The lambda event
+    :param type: json   
 
     :return: key_exists Returns True, If key exists, False If Not.
     :rtype: bool
