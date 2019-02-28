@@ -36,9 +36,9 @@ def set_global_vars():
         global_vars['Owner']                    = "Mystique"
         global_vars['Environment']              = "Prod"
         global_vars['tag_name']                 = "serverless_kms_sentry"
-        # global_vars['sentry_boundary']          = { "event_names": [ "CreateAlias", "CreateGrant", "CreateKey", "Decrypt", "DeleteAlias", "DescribeKey", "DisableKey", "EnableKey", "Encrypt", "GenerateDataKey", "GenerateDataKeyWithoutPlaintext", "GenerateRandom", "GetKeyPolicy", "ListAliases", "ListGrants", "ReEncrypt" ]}
-        global_vars['sentry_borders']           = { "event_names": [ "CreateAlias", "DeleteAlias", "DisableKey"]}
-        global_vars['webhook_url']              = os.environ.get("WEBHOOK_URL")
+        # global_vars['sentry_borders']          = { "event_names": [ "CreateAlias", "CreateGrant", "CreateKey", "Decrypt", "DeleteAlias", "DescribeKey", "DisableKey", "EnableKey", "Encrypt", "GenerateDataKey", "GenerateDataKeyWithoutPlaintext", "GenerateRandom", "GetKeyPolicy", "ListAliases", "ListGrants", "ReEncrypt" ]}
+        global_vars['sentry_borders']           = { "event_names": [ "CreateKey", "CreateAlias", "DeleteAlias", "DisableKey"]}
+        global_vars['slack_webhook_url']        = os.environ.get("SLACK_WEBHOOK_URL")
         global_vars['status']                   = True
     except Exception as e:
         logger.error("Unable to set Global Environment variables. Exiting")
@@ -78,11 +78,11 @@ def match_event(global_vars, event):
         resp['error_message'] = "Event triggered, But couldn't parse event details correctly or unmatched event"
     return resp
 
-def post_to_slack(webhook_url, slack_data):
+def post_to_slack(slack_webhook_url, slack_data):
     """
     Post message to given slack channel/url
 
-    :param webhook_url: The lambda event
+    :param slack_webhook_url: The lambda event
     :param type: str
     :param slack_data: A json containing slack performatted text data
     :param type: json
@@ -131,7 +131,7 @@ def post_to_slack(webhook_url, slack_data):
 
     # slack_payload = {'text':json.dumps(i)}
     try:
-        p_resp = requests.post( webhook_url, data=json.dumps(slack_msg), headers={'Content-Type': 'application/json'} )
+        p_resp = requests.post( slack_webhook_url, data=json.dumps(slack_msg), headers={'Content-Type': 'application/json'} )
         resp["status"] = True
     except Exception as e:
         logger.error( f"ERROR:{str(e)}" )
@@ -174,10 +174,13 @@ def lambda_handler(event, context):
     e_resp = match_event(global_vars, event)
     if e_resp.get("status"):
         # Lets post to slack if there is a event
-        if global_vars.get("webhook_url"):
-            post_to_slack(global_vars.get("webhook_url"), e_resp )
-        # Add to return resp the payload
+        if global_vars.get("slack_webhook_url"):
+            post_to_slack(global_vars.get("slack_webhook_url"), e_resp )
+            # Add to return resp the payload
             resp["pay_load"] = e_resp.get("pay_load")
+        else:
+            logger.info(f"Slack Webhook URL not mentioned/not valid. URL:{global_vars.get('slack_webhook_url')}")
+        # All good so far, set status True
         resp["status"] = True
     else:
         resp['error_message'] = e_resp['error_message']
