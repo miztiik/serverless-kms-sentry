@@ -1,0 +1,48 @@
+{
+  "version": "0",
+  "id": "4a951558-2889-f4d4-5371-77f14ebb4226",
+  "detail-type": "AWS API Call via CloudTrail",
+  "source": "aws.kms",
+  "account": "589762693537",
+  "time": "2019-02-28T12:12:24Z",
+  "region": "us-east-1",
+  "resources": [],
+  "detail": {
+    "eventVersion": "1.05",
+    "userIdentity": {
+      "type": "IAMUser",
+      "principalId": "AIDAIBHH5J4P7DYH4QO6Q",
+      "arn": "arn:aws:iam::589762693537:user/test-user",
+      "accountId": "589762693537",
+      "accessKeyId": "AKIAIVODJM32JZRPU6IN",
+      "userName": "test-user"
+    },
+    "eventTime": "2019-02-28T12:12:24Z",
+    "eventSource": "kms.amazonaws.com",
+    "eventName": "CreateAlias",
+    "awsRegion": "us-east-1",
+    "sourceIPAddress": "192.168.0.1",
+    "userAgent": "aws-cli/1.16.106 Python/3.7.2 Linux/3.10.0-957.5.1.el7.x86_64 botocore/1.12.96",
+    "requestParameters": {
+      "aliasName": "alias/test1",
+      "targetKeyId": "121a5c0d-c618-4076-b040-2d5e13d0cf83"
+    },
+    "responseElements": None,
+    "requestID": "af6aa62a-2e23-4cdb-940b-42fd02db6fa9",
+    "eventID": "52a6b88b-3acd-4237-8f20-0e0ac6a2a31b",
+    "readOnly": False,
+    "resources": [
+      {
+        "ARN": "arn:aws:kms:us-east-1:589762693537:key/121a5c0d-c618-4076-b040-2d5e13d0cf83",
+        "accountId": "589762693537",
+        "type": "AWS::KMS::Key"
+      },
+      {
+        "ARN": "arn:aws:kms:us-east-1:589762693537:alias/test1",
+        "accountId": "589762693537",
+        "type": "AWS::KMS::Key"
+      }
+    ],
+    "eventType": "AwsApiCall"
+  }
+}
